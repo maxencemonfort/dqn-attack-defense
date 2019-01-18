@@ -1,7 +1,15 @@
 # dqn-attack-defense
 Implementation of Deep Q Learning to Solve Erdos-Selfridge-Spencer Games
 
-### How to use
+## Article
+
+Based on the article:
+
+[Can Deep Reinforcement Learning Solve Erdos-Selfridge-Spencer Games?  
+Maithra Raghu, Alex Irpan, Jacob Andreas, Robert Kleinberg, Quoc V. Le, Jon Kleinberg
+](https://arxiv.org/pdf/1711.02301.pdf)
+
+## How to use
 
   1. Install all packages in requirements.txt
   2. Install the gym environment using 
