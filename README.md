@@ -21,4 +21,5 @@ Maithra Raghu, Alex Irpan, Jacob Andreas, Robert Kleinberg, Quoc V. Le, Jon Klei
 ## Notes
 
 OpenAI Baselines : https://github.com/openai/baselines
+Stable Baselines Guide : https://pythonawesome.com/a-fork-of-openai-baselines-implementations-of-reinforcement-learning-algorithms/
   
