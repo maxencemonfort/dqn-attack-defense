@@ -1,0 +1,148 @@
+import gym
+from gym import error, spaces, utils
+from gym.utils import seeding
+from random import randint, choice
+import numpy as np
+
+
+class Defenderv1(gym.Env):
+
+
+    def __init__(self, K, initial_potential):
+        self.state = None
+        self.game_state = None
+        self.K = K
+        self.initial_potential = initial_potential
+        self.weights = np.power(2.0, [-(self.K - i) for i in range(self.K + 1)])
+        self.done = 0
+        self.reward = 0
+        self.action_space = spaces.Discrete(2)
+        self.observation_space= spaces.MultiDiscrete([10]* (2*K+2))
+        
+
+    def potential(self, A):
+        return np.sum(A*self.weights)
+
+
+    def split(self, A):
+        B = [z - a for z, a in zip(self.game_state, A)]
+        return A, B
+
+
+    def erase(self, A):
+        self.game_state = [z - a for z, a in zip(self.game_state, A)]
+        self.game_state = [0] + self.game_state[:-1] 
+
+
+    def optimal_split(self, ratio = 0.5):
+        if (sum(self.game_state) == 1):
+            if (randint(1,100)<=50):
+                return self.game_state, [0]*(self.K+1)
+            else:
+                return [0]*(self.K+1), self.game_state
+            
+        else:
+            A = [0] * (self.K + 1)
+            B = [0] * (self.K + 1)
+            l = 0
+            while (self.potential(A) < ratio * self.potential(self.game_state) and l < self.K + 1):
+                A[l] = self.game_state[l]
+                l += 1
+            for j in range(l, self.K + 1):
+                B[j] = self.game_state[j]
+            if self.potential(A) == ratio * self.potential(self.game_state):
+                if (randint(1,100)<=50):
+                    return A, B
+                else:
+                    return B, A
+            elif self.potential(A) > ratio * self.potential(self.game_state):
+                while (self.potential(A) > ratio * self.potential(self.game_state)):
+                    B[l - 1] += 1
+                    A[l - 1] -= 1
+                difference = ratio * self.potential(self.game_state) - self.potential(A)
+                if (difference > 2**(- 1 - l)):
+                    B[l - 1] -= 1
+                    A[l - 1] += 1
+                if (randint(1,100)<=50):
+                    return A, B
+                else:
+                    return B, A
+            else:
+                print('error')
+                return None
+
+
+    def _seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
+
+
+    def attacker_play(self):
+        prob = 90 
+        if(randint(1,100)<=prob):
+            return self.optimal_split()
+        else:
+            ratios = [0.1, 0.2, 0.3, 0.4]
+            return self.optimal_split(ratio=choice(ratios))
+
+
+    def check(self):
+        if (sum(self.game_state) == 0):
+            return 1
+        elif (self.game_state[-1] >=1 ):
+            return 2
+        else:
+            return 0
+
+
+    def step(self, target):
+        A = self.state[: self.K + 1]
+        B = self.state[self.K + 1 :]
+        if (target == 0):
+            self.erase(A)
+        else:
+            self.erase(B)
+        win = self.check()
+        if(win):
+            self.done = 1
+            if win == 1:
+                self.reward = 1
+            else:
+                self.reward = -1
+        if self.done == 1:
+            return self.state, self.reward, self.done, {}
+        else:
+            A, B = self.attacker_play()
+            self.state = np.concatenate([A,B])
+            return self.state, self.reward, self.done, {}
+
+
+    def reset(self):
+        self.game_state = self.random_start()
+        self.done = 0
+        self.reward = 0
+        A, B = self.attacker_play()
+        self.state = np.concatenate([A,B])
+        return self.state
+
+    def random_start(self):
+        self.game_state = [0] * (self.K + 1)
+        potential = 0
+        stop = False
+        while (potential < self.initial_potential and not stop):
+            possible = self.initial_potential - potential
+            upper = self.K - 1 #upper is K-1 because K represents the top of the matrix which means end of the game
+            while (2**(-(self.K-upper)) > possible):
+                upper -=1
+            if(upper < 0):
+                stop = True
+            else:
+                self.game_state[randint(0,upper)]+=1
+                potential = self.potential(self.game_state)
+        return self.game_state
+
+
+    def render(self):
+        for j in range(self.K + 1):
+            print(self.game_state[j], end = " ")
+        print("")
