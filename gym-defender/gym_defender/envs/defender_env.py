@@ -127,7 +127,7 @@ class Defender(gym.Env):
                 self.erase(self.B)
         win = self.check()
         if(win):
-            self.done = 1;
+            self.done = 1
             if win == 1:
                 self.reward = 1
             else:

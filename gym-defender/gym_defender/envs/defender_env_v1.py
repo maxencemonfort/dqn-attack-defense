@@ -30,11 +30,26 @@ class Defenderv1(gym.Env):
 
 
     def erase(self, A):
+        """Function to remove the partition A from the game state
+
+        Arguments:
+            A {list} -- The list representing the partition we want to remove
+        """
+
         self.game_state = [z - a for z, a in zip(self.game_state, A)]
         self.game_state = [0] + self.game_state[:-1] 
 
 
     def optimal_split(self, ratio = 0.5):
+        """Function that returns the optimal split for a certain ratio of the potential (default to 0.5)
+
+        Keyword Arguments:
+            ratio {float} -- The ratio of the potential needed (default: {0.5})
+
+        Returns:
+            list tuple -- Returns the tuple (A, B) representing the partitions.
+        """
+
         if (sum(self.game_state) == 1):
             if (randint(1,100)<=50):
                 return self.game_state, [0]*(self.K+1)
@@ -87,10 +102,16 @@ class Defenderv1(gym.Env):
 
 
     def check(self):
+        """Function to chek if the game is over or not.
+
+        Returns:
+            int -- If the game is not over returns 0, otherwise returns 1 if the defender won or -1 if the attacker won.
+        """
+
         if (sum(self.game_state) == 0):
             return 1
         elif (self.game_state[-1] >=1 ):
-            return 2
+            return -1
         else:
             return 0
 
@@ -105,16 +126,13 @@ class Defenderv1(gym.Env):
         win = self.check()
         if(win):
             self.done = 1
-            if win == 1:
-                self.reward = 1
-            else:
-                self.reward = -1
-        if self.done == 1:
-            return self.state, self.reward, self.done, {}
-        else:
+            self.reward = win
+
+        if self.done != 1:
             A, B = self.attacker_play()
             self.state = np.concatenate([A,B])
-            return self.state, self.reward, self.done, {}
+
+        return self.state, self.reward, self.done, {}
 
 
     def reset(self):
