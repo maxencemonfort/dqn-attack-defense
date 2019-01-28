@@ -57,34 +57,19 @@ class Defenderv1(gym.Env):
                 return [0]*(self.K+1), self.game_state
             
         else:
-            A = [0] * (self.K + 1)
-            B = [0] * (self.K + 1)
-            l = 0
-            while (self.potential(A) < ratio * self.potential(self.game_state) and l < self.K + 1):
-                A[l] = self.game_state[l]
-                l += 1
-            for j in range(l, self.K + 1):
-                B[j] = self.game_state[j]
-            if self.potential(A) == ratio * self.potential(self.game_state):
-                if (randint(1,100)<=50):
-                    return A, B
-                else:
-                    return B, A
-            elif self.potential(A) > ratio * self.potential(self.game_state):
-                while (self.potential(A) > ratio * self.potential(self.game_state)):
-                    B[l - 1] += 1
-                    A[l - 1] -= 1
-                difference = ratio * self.potential(self.game_state) - self.potential(A)
-                if (difference > 2**(- 1 - l)):
-                    B[l - 1] -= 1
-                    A[l - 1] += 1
-                if (randint(1,100)<=50):
-                    return A, B
-                else:
-                    return B, A
-            else:
-                print('error')
-                return None
+            prob = LpProblem("Optimal split",LpMinimize)
+            A = []
+            for i in range(self.K + 1):
+                A += LpVariable(str(i), 0, self.game_state[i], LpInteger)
+            prob += sum([2**(-(self.K - i)) * c for c, i in zip(A, range(self.K + 1))]) - ratio * self.potential(self.game_state), "Objective function"
+            prob += sum([2**(-(self.K - i)) * c for c, i in zip(A, range(self.K + 1))]) >= ratio * self.potential(self.game_state), "Constraint"
+            prob.writeLP("test.lp")
+            prob.solve()
+            Abis = [0]*(self.K+1)
+            for v in prob.variables():
+                Abis[int(v.name)] = round(v.varValue)
+            B = [z - a for z, a in zip(self.state, Abis)]
+            return Abis, B
 
 
     def _seed(self, seed=None):
@@ -97,7 +82,7 @@ class Defenderv1(gym.Env):
         if(randint(1,100)<=prob):
             return self.optimal_split()
         else:
-            ratios = [0.1, 0.2, 0.3, 0.4]
+            ratios = [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]
             return self.optimal_split(ratio=choice(ratios))
 
 
