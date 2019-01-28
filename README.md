@@ -17,7 +17,7 @@ Maithra Raghu, Alex Irpan, Jacob Andreas, Robert Kleinberg, Quoc V. Le, Jon Klei
   pip install -e gym-defender/
   pip install -e gym-attacker/
   ```
-  3. You can choose to load multiple types of defender environment : K can be 5, 10, 15 or 20 and potential can be 0.8, 0.9, 0.95, 0.97 or 0.99. Don't forget to change the name of the environment based on these values and the initial weights for the model.
+  3. You can choose to load multiple types of defender environment : K can be 5, 10, 15 or 20 and potential can be 0.8, 0.9, 0.95, 0.97 or 0.99 for the defender and 1.01, 1.03, 1.05, 1.1 or 1.2 for the attacker. Don't forget to change the name of the environment based on these values and the initial weights for the model.
 
 ## Notes
 
