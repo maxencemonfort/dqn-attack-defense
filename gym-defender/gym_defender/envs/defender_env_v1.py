@@ -69,7 +69,7 @@ class Defenderv1(gym.Env):
             Abis = [0]*(self.K+1)
             for v in prob.variables():
                 Abis[int(v.name)] = round(v.varValue)
-            B = [z - a for z, a in zip(self.state, Abis)]
+            B = [z - a for z, a in zip(self.game_state, Abis)]
             return Abis, B
 
 
