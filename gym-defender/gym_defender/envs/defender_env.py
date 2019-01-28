@@ -2,7 +2,7 @@ import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
 from random import randint, choice
-from pulp import *
+from pulp import LpProblem, LpMinimize, LpInteger, LpVariable
 import os
 import time
 

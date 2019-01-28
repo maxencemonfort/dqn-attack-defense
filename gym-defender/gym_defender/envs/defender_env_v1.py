@@ -3,7 +3,7 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 from random import randint, choice
 import numpy as np
-from pulp import *
+from pulp import LpProblem, LpMinimize, LpInteger, LpVariable
 
 
 class Defenderv1(gym.Env):
