@@ -64,7 +64,7 @@ class Defenderv1(gym.Env):
                 A += LpVariable(str(i), 0, self.game_state[i], LpInteger)
             prob += sum([2**(-(self.K - i)) * c for c, i in zip(A, range(self.K + 1))]) - ratio * self.potential(self.game_state), "Objective function"
             prob += sum([2**(-(self.K - i)) * c for c, i in zip(A, range(self.K + 1))]) >= ratio * self.potential(self.game_state), "Constraint"
-            prob.writeLP("test.lp")
+            #prob.writeLP("test.lp")
             prob.solve()
             Abis = [0]*(self.K+1)
             for v in prob.variables():
