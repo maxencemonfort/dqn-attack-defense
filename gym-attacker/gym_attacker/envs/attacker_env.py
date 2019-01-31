@@ -75,12 +75,12 @@ class Attacker(gym.Env):
             A[i] = self.state[i]
         for i in range(target + 1, self.K + 1):
             B[i] = self.state[i]
-        n = self.state[l]
+        n = self.state[target]
         while (n>0):
             if self.potential(A) > self.potential(B):
-                B[l] += 1
+                B[target] += 1
             else:
-                A[l] += 1
+                A[target] += 1
             n -= 1
         self.defense_play(A,B)
         win = self.check()
