@@ -2,105 +2,84 @@ import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
 from random import randint, choice
+import numpy as np
 from pulp import LpProblem, LpMinimize, LpInteger, LpVariable
-import os
-import time
 
-def potential(A):
-        potential = 0
-        for i in range(len(A)):
-            potential += A[i] * 2**(-i)
-        return potential
 
 class Defender(gym.Env):
-    #metadata = {'render.modes': ['human']}
 
 
     def __init__(self, K, initial_potential):
-        self.state = [0]*(K+1)
+        self.state = None
+        self.game_state = None
         self.K = K
         self.initial_potential = initial_potential
-        self.random_start()
+        self.weights = np.power(2.0, [-(self.K - i) for i in range(self.K + 1)])
         self.done = 0
         self.reward = 0
-        self.A, self.B = self.attacker_play()
+        self.action_space = spaces.Discrete(2)
+        self.observation_space= spaces.MultiDiscrete([10]* (2*K+2))
+        
 
-
-    def random_start(self):
-        potential = self.potential()
-        stop = False
-        while (potential < self.initial_potential and not stop):
-            possible = self.initial_potential - potential
-            upper = 1 #upper is 1 because 0 represents the top of the matrix which means end of the game
-            while (2**(-upper) > possible):
-                upper +=1
-            if(upper > self.K):
-                stop = True
-            else:
-                self.state[randint(upper,self.K)]+=1
-                potential = self.potential()
-
-
-    def potential(self):
-        potential = 0
-        for i in range(self.K + 1):
-            potential += self.state[i] * 2**(-i)
-        return potential
-
-
-    def subpotential(self):
-        potentialA = 0
-        potentialB = 0
-        for i in range(self.K + 1):
-            potentialA += self.A[i] * 2**(-i)
-            potentialB += self.B[i] * 2**(-i)
-        return potentialA, potentialB
+    def potential(self, A):
+        return np.sum(A*self.weights)
 
 
     def split(self, A):
-        B = [z - a for z, a in zip(self.state, A)]
+        B = [z - a for z, a in zip(self.game_state, A)]
         return A, B
 
 
     def erase(self, A):
-        self.state = [z - a for z, a in zip(self.state, A)]
-        self.state = self.state[1:] + [0]
+        """Function to remove the partition A from the game state
+
+        Arguments:
+            A {list} -- The list representing the partition we want to remove
+        """
+
+        self.game_state = [z - a for z, a in zip(self.game_state, A)]
+        self.game_state = [0] + self.game_state[:-1] 
 
 
     def optimal_split(self, ratio = 0.5):
-        if (sum(self.state) == 1):
-            return self.state, [0]*(self.K+1)
-        else:
-            A = [0] * (self.K + 1)
-            B = [0] * (self.K + 1)
-            l = 0
-            while (potential(A) < ratio * self.potential() and l < self.K + 1):
-                A[l] = self.state[l]
-                l += 1
-            for j in range(l, self.K + 1):
-                B[j] = self.state[j]
-            if potential(A) == ratio * self.potential():
-                return A,B
-            elif potential(A) > ratio * self.potential():
-                while (potential(A) > ratio * self.potential()):
-                    B[l - 1] += 1
-                    A[l - 1] -= 1
-                difference = ratio * self.potential() - potential(A)
-                if (difference > 2**(- 1 - l)):
-                    B[l - 1] -= 1
-                    A[l - 1] += 1
-                return A, B
+        """Function that returns the optimal split for a certain ratio of the potential (default to 0.5)
+
+        Keyword Arguments:
+            ratio {float} -- The ratio of the potential needed (default: {0.5})
+
+        Returns:
+            list tuple -- Returns the tuple (A, B) representing the partitions.
+        """
+
+        if (sum(self.game_state) == 1):
+            if (randint(1,100)<=50):
+                return self.game_state, [0]*(self.K+1)
             else:
-                print('error')
-                return None
+                return [0]*(self.K+1), self.game_state
+            
+        else:
+            prob = LpProblem("Optimal split",LpMinimize)
+            A = []
+            for i in range(self.K + 1):
+                A += LpVariable(str(i), 0, self.game_state[i], LpInteger)
+            prob += sum([2**(-(self.K - i)) * c for c, i in zip(A, range(self.K + 1))]) - ratio * self.potential(self.game_state), "Objective function"
+            prob += sum([2**(-(self.K - i)) * c for c, i in zip(A, range(self.K + 1))]) >= ratio * self.potential(self.game_state), "Constraint"
+            prob.writeLP("test.lp")
+            prob.solve()
+            Abis = [0]*(self.K+1)
+            for v in prob.variables():
+                Abis[int(v.name)] = round(v.varValue)
+            B = [z - a for z, a in zip(self.game_state, Abis)]
+            return Abis, B
 
 
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
+
     def attacker_play(self):
-        prob = 90 #principe de la politique epsilon-greedy
+        prob = 90 
         if(randint(1,100)<=prob):
             return self.optimal_split()
         else:
@@ -109,48 +88,65 @@ class Defender(gym.Env):
 
 
     def check(self):
-        if (sum(self.state) == 0):
+        """Function to chek if the game is over or not.
+
+        Returns:
+            int -- If the game is not over returns 0, otherwise returns 1 if the defender won or -1 if the attacker won.
+        """
+
+        if (sum(self.game_state) == 0):
             return 1
-        elif (self.state[0] >=1 ):
-            return 2
+        elif (self.game_state[-1] >=1 ):
+            return -1
         else:
             return 0
 
 
     def step(self, target):
-        if self.done == 1:
-            return self.A + self.B, self.reward, self.done, {}
+        A = self.state[: self.K + 1]
+        B = self.state[self.K + 1 :]
+        if (target == 0):
+            self.erase(A)
         else:
-            if (target == 0):
-                self.erase(self.A)
-            else:
-                self.erase(self.B)
+            self.erase(B)
         win = self.check()
         if(win):
             self.done = 1
-            if win == 1:
-                self.reward = 1
-            else:
-                self.reward = -1
-        self.A, self.B = self.attacker_play()
-        return self.A + self.B, self.reward, self.done, {}
+            self.reward = win
+
+        if self.done != 1:
+            A, B = self.attacker_play()
+            self.state = np.concatenate([A,B])
+
+        return self.state, self.reward, self.done, {}
 
 
     def reset(self):
-        self.state = [0]*(self.K + 1)
-        self.random_start()
+        self.game_state = self.random_start()
         self.done = 0
         self.reward = 0
-        self.add = [0, 0]
-        self.A, self.B = self.attacker_play()
-        return self.A + self.B
-
-
-    def _get_obs(self):
+        A, B = self.attacker_play()
+        self.state = np.concatenate([A,B])
         return self.state
+
+    def random_start(self):
+        self.game_state = [0] * (self.K + 1)
+        potential = 0
+        stop = False
+        while (potential < self.initial_potential and not stop):
+            possible = self.initial_potential - potential
+            upper = self.K - 1 #upper is K-1 because K represents the top of the matrix which means end of the game
+            while (2**(-(self.K-upper)) > possible):
+                upper -=1
+            if(upper < 0):
+                stop = True
+            else:
+                self.game_state[randint(0,upper)]+=1
+                potential = self.potential(self.game_state)
+        return self.game_state
 
 
     def render(self):
         for j in range(self.K + 1):
-            print(self.state[j], end = " ")
+            print(self.game_state[j], end = " ")
         print("")

@@ -40,7 +40,7 @@ class Defense:
         self.action_size       = 2
         self.reward            = []
         
-        env_name = 'defender-' + str(K) + '-' + str(P) + '-v1'
+        env_name = 'defender-' + str(K) + '-' + str(P) + '-v0'
         
         self.log_dir = "/tmp/gym/"
         os.makedirs(self.log_dir, exist_ok=True)
