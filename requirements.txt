@@ -39,7 +39,7 @@ pickleshare==0.7.5
 pluggy==0.8.1
 progressbar2==3.39.2
 prompt-toolkit==2.0.7
-protobuf==3.6.1
+protobuf==3.15.0
 ptyprocess==0.6.0
 PuLP==1.6.9
 py==1.7.0
