@@ -4,7 +4,7 @@ atomicwrites==1.2.1
 attrs==18.2.0
 backcall==0.1.0
 -e git+https://github.com/openai/baselines.git@57e05eb420f9a20fa8cd7ee7580b1a8874b4a323#egg=baselines
-certifi==2018.11.29
+certifi==2022.12.7
 chardet==3.0.4
 Click==7.0
 cloudpickle==0.6.1
